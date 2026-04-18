@@ -1,7 +1,11 @@
 import os
 import re
 import json
+import urllib.request
 import anthropic
+
+GAS_URL    = os.environ["GAS_URL"]
+GAS_SECRET = os.environ["GAS_SECRET"]
 
 # --- Claude APIで新しい記録を検索 ---
 
@@ -35,24 +39,13 @@ response = client.messages.create(
 )
 
 raw = response.content[0].text.strip()
-
-# JSONを抽出
 json_match = re.search(r'\[.*\]', raw, re.DOTALL)
 if not json_match:
-    print("JSONが見つかりませんでした。処理を終了します。")
+    print("JSONが見つかりませんでした。終了します。")
     exit(0)
 
 new_records = json.loads(json_match.group())
 print(f"{len(new_records)} 件の記録を取得しました")
-
-# --- 既存のindex.htmlからデータを読み込む ---
-
-with open("index.html", "r", encoding="utf-8") as f:
-    html = f.read()
-
-# 既存レコードを名前ベースで抽出（正規表現でname:の値を取る）
-existing_names = set(re.findall(r'name:"([^"]+)"', html))
-print(f"既存レコード数: {len(existing_names)} 件")
 
 # タイムを秒数に変換
 def time_to_sec(t):
@@ -61,33 +54,44 @@ def time_to_sec(t):
         return int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
     return 99999
 
-# 新しいレコードだけ追加用リストに入れる
-to_add = []
 for r in new_records:
-    if r["name"] not in existing_names:
-        r["sec"] = time_to_sec(r["time"])
-        to_add.append(r)
-        print(f"  追加: {r['name']} ({r['genre']}) {r['time']} / {r['event']}")
+    r["sec"] = time_to_sec(r["time"])
 
-print(f"新規追加: {len(to_add)} 件")
+# --- スプレッドシートに新しい記録を追加 ---
 
-if not to_add:
-    print("追加する新規レコードはありませんでした。")
-    exit(0)
+print("スプレッドシートに書き込み中...")
+post_data = json.dumps({"secret": GAS_SECRET, "records": new_records}).encode("utf-8")
+req = urllib.request.Request(GAS_URL, data=post_data, method="POST",
+      headers={"Content-Type": "application/json"})
+with urllib.request.urlopen(req) as res:
+    result = json.loads(res.read().decode("utf-8"))
+print(f"スプレッドシートに {result.get('added', 0)} 件追加しました")
 
-# --- index.htmlのrecords配列の末尾に追記 ---
+# --- スプレッドシートから全データを取得 ---
 
-new_entries = ""
-for r in to_add:
-    new_entries += (
-        f'\n  {{name:"{r["name"]}",genre:"{r["genre"]}",'
-        f'time:"{r["time"]}",sec:{r["sec"]},event:"{r["event"]}"}},'
-    )
+print("スプレッドシートからデータを取得中...")
+req2 = urllib.request.Request(f"{GAS_URL}?secret={GAS_SECRET}", method="GET")
+with urllib.request.urlopen(req2) as res:
+    all_records = json.loads(res.read().decode("utf-8"))
+print(f"合計 {len(all_records)} 件のデータを取得しました")
 
-# records = [ ... ]; の閉じ括弧の直前に挿入
+# --- index.htmlを更新 ---
+
+with open("index.html", "r", encoding="utf-8") as f:
+    html = f.read()
+
+entries = ""
+for r in all_records:
+    name  = str(r.get("name","")).replace('"','\\"')
+    genre = str(r.get("genre","")).replace('"','\\"')
+    time  = str(r.get("time","")).replace('"','\\"')
+    event = str(r.get("event","")).replace('"','\\"')
+    sec   = int(r.get("sec", 0))
+    entries += f'\n  {{name:"{name}",genre:"{genre}",time:"{time}",sec:{sec},event:"{event}"}},'
+
 updated_html = re.sub(
-    r'(let records = \[)(.*?)(\];)',
-    lambda m: m.group(1) + m.group(2).rstrip() + new_entries + '\n' + m.group(3),
+    r'let records = \[.*?\];',
+    f'let records = [{entries}\n];',
     html,
     flags=re.DOTALL
 )
