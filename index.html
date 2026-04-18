@@ -1,0 +1,576 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>有名人マラソン記録ランキング</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Sans+JP:wght@400;500;700&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #f7f5f0;
+    --surface: #ffffff;
+    --border: #e2ddd6;
+    --text: #1a1917;
+    --text-sub: #6b6760;
+    --text-hint: #a09c97;
+    --accent: #c0392b;
+    --accent-light: #fdf0ee;
+    --gold: #b8860b;
+    --silver: #7a7a7a;
+    --bronze: #8b4513;
+    --badge-actor-bg: #ede9fe; --badge-actor-fg: #4c1d95;
+    --badge-athlete-bg: #d1fae5; --badge-athlete-fg: #064e3b;
+    --badge-talent-bg: #fef3c7; --badge-talent-fg: #78350f;
+    --badge-musician-bg: #fce7f3; --badge-musician-fg: #831843;
+    --badge-doctor-bg: #dbeafe; --badge-doctor-fg: #1e3a8a;
+    --badge-other-bg: #f1f0eb; --badge-other-fg: #44403c;
+    --radius: 8px;
+    --radius-lg: 12px;
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Noto Sans JP', sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    min-height: 100vh;
+    font-size: 14px;
+    line-height: 1.6;
+  }
+
+  /* Header */
+  .site-header {
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    padding: 0 24px;
+  }
+  .site-header-inner {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 20px 0 16px;
+    display: flex;
+    align-items: baseline;
+    gap: 16px;
+    flex-wrap: wrap;
+  }
+  .site-title {
+    font-size: 20px;
+    font-weight: 700;
+    letter-spacing: -0.02em;
+    color: var(--text);
+  }
+  .site-title span {
+    color: var(--accent);
+  }
+  .site-subtitle {
+    font-size: 12px;
+    color: var(--text-hint);
+  }
+
+  /* Main */
+  .main {
+    max-width: 900px;
+    margin: 0 auto;
+    padding: 24px;
+  }
+
+  /* Controls */
+  .controls {
+    display: flex;
+    gap: 8px;
+    flex-wrap: wrap;
+    margin-bottom: 20px;
+    align-items: center;
+  }
+  .controls select {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13px;
+    padding: 7px 12px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--surface);
+    color: var(--text);
+    cursor: pointer;
+    appearance: none;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 12 12'%3E%3Cpath fill='%236b6760' d='M6 8L1 3h10z'/%3E%3C/svg%3E");
+    background-repeat: no-repeat;
+    background-position: right 10px center;
+    padding-right: 28px;
+  }
+  .controls select:focus { outline: none; border-color: var(--accent); }
+
+  /* Stats */
+  .stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+  .stat {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 14px 16px;
+  }
+  .stat-label {
+    font-size: 11px;
+    color: var(--text-hint);
+    margin-bottom: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  .stat-val {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--text);
+    font-family: 'DM Mono', monospace;
+  }
+  .stat-val.name-val {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 16px;
+  }
+
+  /* Table */
+  .table-wrap {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    margin-bottom: 28px;
+  }
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    table-layout: fixed;
+  }
+  thead th {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-hint);
+    text-align: left;
+    padding: 10px 14px;
+    border-bottom: 1px solid var(--border);
+    background: #faf9f7;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+  th.right, td.right { text-align: right; }
+  tbody tr {
+    border-bottom: 1px solid var(--border);
+    transition: background 0.1s;
+  }
+  tbody tr:last-child { border-bottom: none; }
+  tbody tr:hover { background: #faf9f7; }
+  td {
+    padding: 11px 14px;
+    vertical-align: middle;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .rank {
+    font-family: 'DM Mono', monospace;
+    font-size: 13px;
+    font-weight: 500;
+    color: var(--text-hint);
+    width: 44px;
+  }
+  .rank.gold { color: var(--gold); }
+  .rank.silver { color: var(--silver); }
+  .rank.bronze { color: var(--bronze); }
+
+  .name-cell { font-weight: 500; font-size: 14px; }
+
+  .badge {
+    display: inline-block;
+    font-size: 11px;
+    padding: 2px 8px;
+    border-radius: 99px;
+    white-space: nowrap;
+    font-weight: 500;
+  }
+  .badge-俳優    { background: var(--badge-actor-bg);    color: var(--badge-actor-fg); }
+  .badge-アスリート { background: var(--badge-athlete-bg); color: var(--badge-athlete-fg); }
+  .badge-タレント  { background: var(--badge-talent-bg);  color: var(--badge-talent-fg); }
+  .badge-ミュージシャン { background: var(--badge-musician-bg); color: var(--badge-musician-fg); }
+  .badge-医師    { background: var(--badge-doctor-bg);   color: var(--badge-doctor-fg); }
+  .badge-その他   { background: var(--badge-other-bg);   color: var(--badge-other-fg); }
+
+  .time-cell {
+    font-family: 'DM Mono', monospace;
+    font-size: 14px;
+    font-weight: 500;
+  }
+  .event-cell {
+    font-size: 12px;
+    color: var(--text-sub);
+  }
+  .empty-row td {
+    text-align: center;
+    padding: 2.5rem;
+    color: var(--text-hint);
+  }
+
+  /* Section divider */
+  .section-title {
+    font-size: 13px;
+    font-weight: 700;
+    color: var(--text-sub);
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    margin-bottom: 14px;
+  }
+
+  /* Form */
+  .form-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px 24px;
+    margin-bottom: 28px;
+  }
+  .form-note {
+    font-size: 12px;
+    color: var(--text-hint);
+    margin-bottom: 16px;
+    line-height: 1.7;
+  }
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+    margin-bottom: 14px;
+  }
+  .form-group { display: flex; flex-direction: column; gap: 5px; }
+  .form-group label {
+    font-size: 11px;
+    font-weight: 500;
+    color: var(--text-sub);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+  .form-group input, .form-group select {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13px;
+    padding: 8px 10px;
+    border: 1px solid var(--border);
+    border-radius: var(--radius);
+    background: var(--bg);
+    color: var(--text);
+    transition: border-color 0.15s;
+  }
+  .form-group input:focus, .form-group select:focus {
+    outline: none;
+    border-color: var(--accent);
+    background: var(--surface);
+  }
+  .btn-row { display: flex; gap: 10px; align-items: center; }
+  .btn-submit {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 13px;
+    font-weight: 500;
+    padding: 8px 20px;
+    border: 1px solid var(--accent);
+    border-radius: var(--radius);
+    background: var(--accent);
+    color: #fff;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .btn-submit:hover { opacity: 0.85; }
+  .toast {
+    font-size: 13px;
+    color: #065f46;
+    display: none;
+  }
+  .toast.show { display: inline; }
+  .toast-err {
+    font-size: 13px;
+    color: var(--accent);
+    display: none;
+  }
+  .toast-err.show { display: inline; }
+
+  /* Pending */
+  .pending-card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    padding: 20px 24px;
+    margin-bottom: 28px;
+  }
+  .pending-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid var(--border);
+    gap: 12px;
+    flex-wrap: wrap;
+  }
+  .pending-item:last-child { border-bottom: none; }
+  .pi-info { display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .pi-name { font-weight: 500; }
+  .pi-meta { font-size: 12px; color: var(--text-sub); }
+  .pi-actions { display: flex; gap: 6px; }
+  .btn-approve, .btn-reject {
+    font-family: 'Noto Sans JP', sans-serif;
+    font-size: 12px;
+    padding: 4px 12px;
+    border-radius: var(--radius);
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .btn-approve {
+    border: 1px solid #059669;
+    color: #059669;
+    background: #d1fae5;
+  }
+  .btn-reject {
+    border: 1px solid var(--accent);
+    color: var(--accent);
+    background: var(--accent-light);
+  }
+  .btn-approve:hover, .btn-reject:hover { opacity: 0.75; }
+
+  /* Footer */
+  .site-footer {
+    border-top: 1px solid var(--border);
+    padding: 20px 24px;
+    text-align: center;
+    font-size: 12px;
+    color: var(--text-hint);
+    margin-top: 8px;
+  }
+
+  @media (max-width: 600px) {
+    .stats { grid-template-columns: 1fr 1fr; }
+    .form-grid { grid-template-columns: 1fr; }
+    .main { padding: 16px; }
+    th:nth-child(5), td:nth-child(5) { display: none; }
+  }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="site-header-inner">
+    <div class="site-title">有名人<span>マラソン</span>記録ランキング</div>
+    <div class="site-subtitle" id="header-sub">最終更新: 2025年4月</div>
+  </div>
+</header>
+
+<main class="main">
+
+  <div class="controls">
+    <select id="genre-filter" onchange="render()">
+      <option value="">すべてのジャンル</option>
+      <option value="俳優">俳優・女優</option>
+      <option value="アスリート">アスリート</option>
+      <option value="タレント">タレント・MC</option>
+      <option value="ミュージシャン">ミュージシャン</option>
+      <option value="医師">医師・研究者</option>
+      <option value="その他">その他</option>
+    </select>
+    <select id="sort-filter" onchange="render()">
+      <option value="time">タイム順（速い順）</option>
+      <option value="recent">大会日付順（新しい順）</option>
+      <option value="name">名前順</option>
+    </select>
+  </div>
+
+  <div class="stats" id="stats"></div>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr>
+          <th style="width:44px">#</th>
+          <th style="width:110px">名前</th>
+          <th style="width:100px">ジャンル</th>
+          <th class="right" style="width:90px">タイム</th>
+          <th style="padding-left:16px">大会</th>
+        </tr>
+      </thead>
+      <tbody id="tbody"></tbody>
+    </table>
+  </div>
+
+  <div class="section-title">情報を投稿する</div>
+  <div class="form-card">
+    <p class="form-note">有名人のマラソン記録をご存知の方はこちらから投稿できます。内容を確認後に掲載します。</p>
+    <div class="form-grid">
+      <div class="form-group">
+        <label>名前 *</label>
+        <input type="text" id="f-name" placeholder="例: 山田太郎">
+      </div>
+      <div class="form-group">
+        <label>ジャンル *</label>
+        <select id="f-genre">
+          <option value="">選択してください</option>
+          <option value="俳優">俳優・女優</option>
+          <option value="アスリート">アスリート</option>
+          <option value="タレント">タレント・MC</option>
+          <option value="ミュージシャン">ミュージシャン</option>
+          <option value="医師">医師・研究者</option>
+          <option value="その他">その他</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>タイム * (例: 3:45:22)</label>
+        <input type="text" id="f-time" placeholder="h:mm:ss">
+      </div>
+      <div class="form-group">
+        <label>大会名・開催年 *</label>
+        <input type="text" id="f-event" placeholder="例: 東京マラソン 2024">
+      </div>
+    </div>
+    <div class="btn-row">
+      <button class="btn-submit" onclick="submitEntry()">投稿する</button>
+      <span class="toast" id="toast">投稿しました！確認後に掲載します。</span>
+      <span class="toast-err" id="toast-err"></span>
+    </div>
+  </div>
+
+  <div id="pending-section" style="display:none">
+    <div class="section-title">確認待ちの投稿（管理者用）</div>
+    <div class="pending-card">
+      <div id="pending-list"></div>
+    </div>
+  </div>
+
+</main>
+
+<footer class="site-footer">
+  有名人マラソン記録ランキング — 情報は随時更新中
+</footer>
+
+<script>
+let records = [
+  {name:"間寛平",genre:"タレント",time:"5:30:04",sec:19804,event:"釧路湿原マラソン 2018"},
+  {name:"萩本欽一",genre:"タレント",time:"6:01:32",sec:21692,event:"ホノルルマラソン 2009"},
+  {name:"谷川真理",genre:"アスリート",time:"2:26:09",sec:8769,event:"東京マラソン 2007"},
+  {name:"高橋尚子",genre:"アスリート",time:"2:19:46",sec:8386,event:"ベルリンマラソン 2001"},
+  {name:"市川海老蔵",genre:"俳優",time:"4:01:38",sec:14498,event:"東京マラソン 2015"},
+  {name:"杉山愛",genre:"アスリート",time:"3:52:44",sec:13964,event:"東京マラソン 2019"},
+  {name:"鎌田實",genre:"医師",time:"4:58:11",sec:17891,event:"ホノルルマラソン 2013"},
+  {name:"武田真治",genre:"タレント",time:"3:14:29",sec:11669,event:"東京マラソン 2022"},
+  {name:"松村邦洋",genre:"タレント",time:"5:02:18",sec:18138,event:"東京マラソン 2011"},
+  {name:"中村アン",genre:"俳優",time:"4:33:51",sec:16431,event:"大阪マラソン 2023"},
+  {name:"澤穂希",genre:"アスリート",time:"3:45:20",sec:13520,event:"東京マラソン 2018"},
+  {name:"桑田佳祐",genre:"ミュージシャン",time:"5:12:04",sec:18724,event:"ホノルルマラソン 2014"},
+  {name:"矢沢永吉",genre:"ミュージシャン",time:"4:48:30",sec:17310,event:"東京マラソン 2010"},
+];
+
+let pending = [];
+
+function timeToSec(t) {
+  const p = t.split(":").map(Number);
+  if (p.length === 3) return p[0]*3600 + p[1]*60 + p[2];
+  if (p.length === 2) return p[0]*60 + p[1];
+  return 99999;
+}
+
+function render() {
+  const genre = document.getElementById("genre-filter").value;
+  const sort = document.getElementById("sort-filter").value;
+  let rows = records.filter(d => !genre || d.genre === genre);
+  if (sort === "time") rows.sort((a,b) => a.sec - b.sec);
+  else if (sort === "name") rows.sort((a,b) => a.name.localeCompare(b.name, "ja"));
+  else rows.sort((a,b) => {
+    const ya = parseInt((a.event.match(/\d{4}/) || ["0"])[0]);
+    const yb = parseInt((b.event.match(/\d{4}/) || ["0"])[0]);
+    return yb - ya;
+  });
+
+  const tbody = document.getElementById("tbody");
+  if (!rows.length) {
+    tbody.innerHTML = `<tr class="empty-row"><td colspan="5">該当するデータがありません</td></tr>`;
+  } else {
+    tbody.innerHTML = rows.map((d, i) => {
+      const rc = i === 0 ? "rank gold" : i === 1 ? "rank silver" : i === 2 ? "rank bronze" : "rank";
+      return `<tr>
+        <td class="${rc}">${i+1}</td>
+        <td class="name-cell">${d.name}</td>
+        <td><span class="badge badge-${d.genre}">${d.genre}</span></td>
+        <td class="right time-cell">${d.time}</td>
+        <td style="padding-left:16px" class="event-cell">${d.event}</td>
+      </tr>`;
+    }).join("");
+  }
+
+  const fastest = rows.length ? rows.slice().sort((a,b) => a.sec - b.sec)[0] : null;
+  document.getElementById("stats").innerHTML = `
+    <div class="stat"><div class="stat-label">登録数</div><div class="stat-val">${rows.length}<span style="font-size:13px;font-family:'Noto Sans JP',sans-serif;font-weight:400;color:var(--text-hint)"> 件</span></div></div>
+    <div class="stat"><div class="stat-label">最速タイム</div><div class="stat-val">${fastest ? fastest.time : "—"}</div></div>
+    <div class="stat"><div class="stat-label">最速選手</div><div class="stat-val name-val">${fastest ? fastest.name : "—"}</div></div>
+  `;
+}
+
+function submitEntry() {
+  const name = document.getElementById("f-name").value.trim();
+  const genre = document.getElementById("f-genre").value;
+  const time = document.getElementById("f-time").value.trim();
+  const event = document.getElementById("f-event").value.trim();
+  const errEl = document.getElementById("toast-err");
+  errEl.classList.remove("show");
+  if (!name || !genre || !time || !event) {
+    errEl.textContent = "すべての項目を入力してください。";
+    errEl.classList.add("show");
+    return;
+  }
+  if (!/^\d+:\d{2}:\d{2}$/.test(time)) {
+    errEl.textContent = "タイムは h:mm:ss の形式で入力してください（例: 3:45:22）";
+    errEl.classList.add("show");
+    return;
+  }
+  pending.push({name, genre, time, sec: timeToSec(time), event});
+  document.getElementById("f-name").value = "";
+  document.getElementById("f-genre").value = "";
+  document.getElementById("f-time").value = "";
+  document.getElementById("f-event").value = "";
+  const toast = document.getElementById("toast");
+  toast.classList.add("show");
+  setTimeout(() => toast.classList.remove("show"), 3000);
+  renderPending();
+}
+
+function renderPending() {
+  const sec = document.getElementById("pending-section");
+  const list = document.getElementById("pending-list");
+  if (!pending.length) { sec.style.display = "none"; return; }
+  sec.style.display = "block";
+  list.innerHTML = pending.map((p, i) => `
+    <div class="pending-item">
+      <div class="pi-info">
+        <span class="pi-name">${p.name}</span>
+        <span class="badge badge-${p.genre}">${p.genre}</span>
+        <span class="pi-meta">${p.time} / ${p.event}</span>
+      </div>
+      <div class="pi-actions">
+        <button class="btn-approve" onclick="approve(${i})">承認</button>
+        <button class="btn-reject" onclick="reject(${i})">却下</button>
+      </div>
+    </div>
+  `).join("");
+}
+
+function approve(i) {
+  records.push(pending[i]);
+  pending.splice(i, 1);
+  render();
+  renderPending();
+}
+function reject(i) {
+  pending.splice(i, 1);
+  renderPending();
+}
+
+render();
+</script>
+</body>
+</html>
