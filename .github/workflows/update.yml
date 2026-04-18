@@ -26,6 +26,8 @@ jobs:
       - name: 記録を更新
         env:
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GAS_URL: ${{ secrets.GAS_URL }}
+          GAS_SECRET: ${{ secrets.GAS_SECRET }}
         run: python update_records.py
 
       - name: 変更をコミット・プッシュ
