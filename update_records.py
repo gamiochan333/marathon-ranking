@@ -50,15 +50,9 @@ print(f"{len(new_records)} 件の記録を取得しました")
 with open("index.html", "r", encoding="utf-8") as f:
     html = f.read()
 
-# 既存レコードを抽出
-existing_match = re.search(r'let records = (\[.*?\]);', html, re.DOTALL)
-if not existing_match:
-    print("既存データが見つかりませんでした。処理を終了します。")
-    exit(0)
-
-existing_records = json.loads(existing_match.group(1))
-existing_names = {r["name"] for r in existing_records}
-print(f"既存レコード数: {len(existing_records)} 件")
+# 既存レコードを名前ベースで抽出（正規表現でname:の値を取る）
+existing_names = set(re.findall(r'name:"([^"]+)"', html))
+print(f"既存レコード数: {len(existing_names)} 件")
 
 # タイムを秒数に変換
 def time_to_sec(t):
@@ -67,29 +61,38 @@ def time_to_sec(t):
         return int(parts[0]) * 3600 + int(parts[1]) * 60 + int(parts[2])
     return 99999
 
-# 新しいレコードだけ追加
-added = 0
+# 新しいレコードだけ追加用リストに入れる
+to_add = []
 for r in new_records:
     if r["name"] not in existing_names:
         r["sec"] = time_to_sec(r["time"])
-        existing_records.append(r)
-        existing_names.add(r["name"])
+        to_add.append(r)
         print(f"  追加: {r['name']} ({r['genre']}) {r['time']} / {r['event']}")
-        added += 1
 
-print(f"新規追加: {added} 件 / 合計: {len(existing_records)} 件")
+print(f"新規追加: {len(to_add)} 件")
 
-# --- index.htmlを更新 ---
+if not to_add:
+    print("追加する新規レコードはありませんでした。")
+    exit(0)
 
-new_records_js = json.dumps(existing_records, ensure_ascii=False, indent=2)
-new_html = re.sub(
-    r'let records = \[.*?\];',
-    f'let records = {new_records_js};',
+# --- index.htmlのrecords配列の末尾に追記 ---
+
+new_entries = ""
+for r in to_add:
+    new_entries += (
+        f'\n  {{name:"{r["name"]}",genre:"{r["genre"]}",'
+        f'time:"{r["time"]}",sec:{r["sec"]},event:"{r["event"]}"}},'
+    )
+
+# records = [ ... ]; の閉じ括弧の直前に挿入
+updated_html = re.sub(
+    r'(let records = \[)(.*?)(\];)',
+    lambda m: m.group(1) + m.group(2).rstrip() + new_entries + '\n' + m.group(3),
     html,
     flags=re.DOTALL
 )
 
 with open("index.html", "w", encoding="utf-8") as f:
-    f.write(new_html)
+    f.write(updated_html)
 
 print("index.html を更新しました")
